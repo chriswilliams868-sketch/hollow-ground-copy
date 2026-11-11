@@ -38,6 +38,7 @@ export const CUSTOM_WEAPONS = [
     rarity: 'legendary',
     price: 0,
     grip: 0.2,
+    flip:0.1,
     glow: 0.3,
   },
 ];
