@@ -175,7 +175,7 @@ export default class GameEngine {
 
 
 
-  //resize() {
+  //resize() { Original camera settings
    // const width = this.host.clientWidth || window.innerWidth;
   //  const height = this.host.clientHeight || window.innerHeight;
    // if (!width || !height) return;
@@ -816,7 +816,15 @@ export default class GameEngine {
     this.camTarget.lerp(desired, 1 - Math.exp(-5 * dt));
 
     const camera = this.camera;
-    camera.position.copy(this.camTarget).addScaledVector(CAM_DIR, 52);
+
+   // camera.position.copy(this.camTarget).addScaledVector(CAM_DIR, 52);
+
+    // Third-person offset: 5 units UP, 10 units BEHIND the player's facing direction
+    const offset = new THREE.Vector3(0, 5, -10);
+    if (this.player && this.player.group) {
+    offset.applyQuaternion(this.player.group.quaternion);
+}
+camera.position.copy(this.camTarget).add(offset);
     if (this.shake > 0.002) {
       const amount = this.shake;
       camera.position.x += (Math.random() - 0.5) * amount * 2.4;
