@@ -31,3 +31,20 @@ export const CUSTOM_WEAPONS = [
     spin: 90,
   },
 ];
+export const CUSTOM_WEAPONS = [
+
+{
+ id: "shotgun",
+  name: "Shotgun",
+  url: 'https://github.com/chriswilliams868-sketch/hollow-ground-copy/blame/main/Shotgun.glb',
+  rarity: "legendary", // Common, rare, legendary, etc.
+  price: 0,
+  actsAs: "blunderbuss", // Controls which class uses it & which animations play (e.g., greatsword, sword, staff)
+  glow: 0.3,          // Enables emissive voxel glow
+  
+  // Optional adjustments if the model sits weirdly in hand:
+  // flip: true,
+  // grip: [0, 0, 0],
+  // length: 1.0
+}
+];
