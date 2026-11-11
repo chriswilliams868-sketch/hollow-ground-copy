@@ -653,6 +653,30 @@ export default class GameEngine {
     if (length > 1) {
       x /= length;
       y /= length;
+      updatePlayerMovement(moveInput, dt) {
+  // moveInput = { forward: 1/0/-1, right: 1/0/-1 }
+  if (moveInput.forward === 0 && moveInput.right === 0) return;
+
+  // 1. Calculate world-space direction vector from camera orientation
+  const moveDir = new THREE.Vector3();
+  moveDir.addScaledVector(this.camFwd, moveInput.forward);
+  moveDir.addScaledVector(this.camRight, moveInput.right);
+  moveDir.normalize(); // Ensures diagonal walking isn't faster than cardinal walking
+
+  // 2. Move player position
+  const speed = 8.0; // Units per second
+  this.player.group.position.addScaledVector(moveDir, speed * dt);
+
+  // 3. Rotate player mesh to face movement direction smoothly
+  const targetAngle = Math.atan2(moveDir.x, moveDir.z);
+  const targetRotation = new THREE.Quaternion().setFromAxisAngle(
+    new THREE.Vector3(0, 1, 0),
+    targetAngle
+  );
+
+  // Slerp (spherical linear interpolation) for smooth rotation
+  this.player.group.quaternion.slerp(targetRotation, 1 - Math.exp(-15 * dt));
+}
     }
     const dir = new THREE.Vector3();
     dir.addScaledVector(this.camFwd, y);
