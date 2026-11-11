@@ -160,21 +160,36 @@ export default class GameEngine {
     window.addEventListener('orientationchange', this.handleResize);
   }
 
+
   resize() {
-    const width = this.host.clientWidth || window.innerWidth;
-    const height = this.host.clientHeight || window.innerHeight;
-    if (!width || !height) return;
-    this.renderer.setSize(width, height, false);
-    const aspect = width / height;
-    let viewHeight = 21;
-    if (viewHeight * aspect < 13) viewHeight = 13 / aspect;
-    const camera = this.camera;
-    camera.left = (-viewHeight * aspect) / 2;
-    camera.right = (viewHeight * aspect) / 2;
-    camera.top = viewHeight / 2;
-    camera.bottom = -viewHeight / 2;
-    camera.updateProjectionMatrix();
-  }
+  const width = this.host.clientWidth || window.innerWidth;
+  const height = this.host.clientHeight || window.innerHeight;
+  if (!width || !height) return;
+
+  this.renderer.setSize(width, height, false);
+
+  // Update Perspective Camera aspect ratio & frustum matrix
+  this.camera.aspect = width / height;
+  this.camera.updateProjectionMatrix();
+}
+
+
+
+  //resize() {
+   // const width = this.host.clientWidth || window.innerWidth;
+  //  const height = this.host.clientHeight || window.innerHeight;
+   // if (!width || !height) return;
+   // this.renderer.setSize(width, height, false);
+   // const aspect = width / height;
+   // let viewHeight = 21;
+   // if (viewHeight * aspect < 13) viewHeight = 13 / aspect;
+   // const camera = this.camera;
+   // camera.left = (-viewHeight * aspect) / 2;
+   // camera.right = (viewHeight * aspect) / 2;
+    //camera.top = viewHeight / 2;
+    //camera.bottom = -viewHeight / 2;
+   // camera.updateProjectionMatrix();
+ // }
 
   // ---------- progression ----------
 
