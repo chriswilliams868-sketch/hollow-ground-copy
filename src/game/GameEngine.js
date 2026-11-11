@@ -62,13 +62,13 @@ export default class GameEngine {
     this.isMobile = window.matchMedia('(pointer: coarse)').matches;
 
 
-    //camera orbit settings
-    this.camera.yaw = 0;
-    this.camera.pitch = Math.Pi/4;
-    this.camera.distance = 12;
+    //camera orbit settings (pitch is measured from straight overhead)
+    this.cameraYaw = Math.PI / 4;
+    this.cameraPitch = Math.PI / 4;
+    this.cameraDistance = 12;
     //pitch limits
     this.minPitch = 0.1;
-    this.maxPitch = Math.Pi/2.1;
+    this.maxPitch = Math.PI / 2.1;
 
 
 
@@ -118,30 +118,6 @@ export default class GameEngine {
     this.scene.background = new THREE.Color('#08060f');
     this.scene.fog = new THREE.Fog('#08060f', 34, 82);
 
-    //Pointer Lock and Mouse Events
-    canvas.addEventListener('Click', () =>{
-      if(document.pointerLockElement !==canvas)
-        canvas.requestPointerLock();
-    });
-    //listen for mouse movement 
-    window.addEventListener('movement',(event)=>{
-      //only rotate camerea if pointer is locked to canvas
-      if(document.pointerLockElement === canvas){
-        const sensitivity = 0.002;
-        //adjust yaw
-        this.canvas.yaw -= event.movementX * sensitivity;
-        //adjust pitch
-        this.canvas.pitch += event.movementY * sensitivity;
-        //clamp pitch so the camera doesnt flip over head or go underground
-        this.cameraPitch = Math.max(this.minPitch, Math.min(this.maxPitch, this.cameraPitch));
-
-      }
-
-
-    })
-
-
-
     // Stencil: faded scenery marks where the hero's silhouette should glow through it
     this.renderer = new THREE.WebGLRenderer({ antialias: !this.isMobile, powerPreference: 'high-performance', stencil: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.isMobile ? 1.6 : 2));
@@ -156,6 +132,22 @@ export default class GameEngine {
     canvas.style.height = '100%';
     canvas.style.touchAction = 'none';
     this.host.appendChild(canvas);
+
+    //Pointer Lock and Mouse Events
+    canvas.addEventListener('click', () => {
+      if (this.state === 'playing' && document.pointerLockElement !== canvas) canvas.requestPointerLock();
+    });
+    //listen for mouse movement
+    this.handleMouseLook = (event) => {
+      //only rotate camera if pointer is locked to canvas
+      if (document.pointerLockElement !== canvas) return;
+      const sensitivity = 0.002;
+      this.cameraYaw -= event.movementX * sensitivity;
+      this.cameraPitch += event.movementY * sensitivity;
+      //clamp pitch so the camera doesnt flip over head or go underground
+      this.cameraPitch = Math.max(this.minPitch, Math.min(this.maxPitch, this.cameraPitch));
+    };
+    window.addEventListener('mousemove', this.handleMouseLook);
 
     // Field of View: 60°, Aspect Ratio: screen width/height, Near: 0.1, Far: 1000
     const aspect = window.innerWidth / window.innerHeight;
@@ -841,18 +833,26 @@ export default class GameEngine {
 
   updateCamera(dt) {
 
-    if(!this.player) return;
-    // smoothly interpolate camTarget to match player position
+    // smoothly interpolate camTarget to match player position (spawn area while in the menus)
+    const desiredTarget = new THREE.Vector3(WORLD.spawn.x, 1.8, WORLD.spawn.z);
+    if (this.player && this.state !== 'menu' && this.state !== 'select') {
+      const p = this.player.group.position;
+      desiredTarget.set(p.x, p.y + 1.8, p.z);
+    }
+    this.camTarget.lerp(desiredTarget, 1 - Math.exp(-10 * dt));
 
-    const p = this.player.group.position;
-    const desiredTarget = new THREE.vector3(p.x,p.y + 1.8, p.z);
-    this.camTarget.lerp(desiredTarget,1 - Math.exp(-10*dt));
+    const x = this.camTarget.x + this.cameraDistance * Math.sin(this.cameraPitch) * Math.sin(this.cameraYaw);
+    const y = this.camTarget.y + this.cameraDistance * Math.cos(this.cameraPitch);
+    const z = this.camTarget.z + this.cameraDistance * Math.sin(this.cameraPitch) * Math.cos(this.cameraYaw);
 
-    const x = this.camTarget.x + this.cameraDistance * Math.sin(this.camera.pitch) * Math.sin(this.cameraYaw);
-    const x = this.camTarget.y + this.cameraDistance * Math.cos(this.camera.pitch);
-    const x = this.camTarget.z + this.cameraDistance * Math.sin(this.camera.pitch) * Math.cos(this.cameraYaw);
-
-    this.camera.position.set(x,y,z);
+    this.camera.position.set(x, y, z);
+    if (this.shake > 0.002) {
+      const amount = this.shake;
+      this.camera.position.x += (Math.random() - 0.5) * amount * 2.4;
+      this.camera.position.y += (Math.random() - 0.5) * amount * 2.4;
+      this.camera.position.z += (Math.random() - 0.5) * amount * 2.4;
+      this.shake *= Math.exp(-7 * dt);
+    }
 
     //point camera at target point
 
@@ -861,12 +861,12 @@ export default class GameEngine {
     // 4. Update horizontal direction vectors for WASD movement
     // We flatten Y to 0 so walking up/down slopes doesn't slow down forward speed
 
-    this.camFWD.set(
-      -Math.sin(this.cameraYaw),0,-Math.cos(this.cameraYaw)
-
-    ).normalize();
+    this.camFwd.set(-Math.sin(this.cameraYaw), 0, -Math.cos(this.cameraYaw)).normalize();
 
     this.camRight.crossVectors(this.camFwd, UP).normalize();
+    // Keep the sun (and its shadows) following the hero
+    this.keyLight.position.set(this.camTarget.x + 14, this.camTarget.y + 22, this.camTarget.z + 10);
+    this.keyLight.target.position.copy(this.camTarget);
   }
 
 
@@ -1057,6 +1057,8 @@ export default class GameEngine {
     cancelAnimationFrame(this.raf);
     window.removeEventListener('resize', this.handleResize);
     window.removeEventListener('orientationchange', this.handleResize);
+    window.removeEventListener('mousemove', this.handleMouseLook);
+    if (document.pointerLockElement) document.exitPointerLock();
     this.unbindInput?.();
     this.offInspector?.();
     this.cancelCharge();
