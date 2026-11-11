@@ -37,6 +37,7 @@ export const CUSTOM_WEAPONS = [
     actsAs: 'blunderbuss',
     rarity: 'legendary',
     price: 0,
+    grip: 0.2,
     glow: 0.3,
   },
 ];
