@@ -61,6 +61,17 @@ export default class GameEngine {
     this.cb = callbacks;
     this.isMobile = window.matchMedia('(pointer: coarse)').matches;
 
+
+    //camera orbit settings
+    this.camera.yaw = 0;
+    this.camera.pitch = Math.Pi/4;
+    this.camera.distance = 12;
+    //pitch limits
+    this.minPitch = 0.1;
+    this.maxPitch = Math.Pi/2.1;
+
+
+
     this.state = 'menu';
     this.keys = new Set();
     this.touch = { x: 0, y: 0 };
@@ -106,6 +117,30 @@ export default class GameEngine {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color('#08060f');
     this.scene.fog = new THREE.Fog('#08060f', 34, 82);
+
+    //Pointer Lock and Mouse Events
+    canvas.addEventListener('Click', () =>{
+      if(document.pointerLockElement !==canvas)
+        canvas.requestPointerLock();
+    });
+    //listen for mouse movement 
+    window.addEventListener('movement',(event)=>{
+      //only rotate camerea if pointer is locked to canvas
+      if(document.pointerLockElement === canvas){
+        const sensitivity = 0.002;
+        //adjust yaw
+        this.canvas.yaw -= event.movementX * sensitivity;
+        //adjust pitch
+        this.canvas.pitch += event.movementY * sensitivity;
+        //clamp pitch so the camera doesnt flip over head or go underground
+        this.cameraPitch = Math.max(this.minPitch, Math.min(this.maxPitch, this.cameraPitch));
+
+      }
+
+
+    })
+
+
 
     // Stencil: faded scenery marks where the hero's silhouette should glow through it
     this.renderer = new THREE.WebGLRenderer({ antialias: !this.isMobile, powerPreference: 'high-performance', stencil: true });
@@ -805,40 +840,80 @@ export default class GameEngine {
   }
 
   updateCamera(dt) {
-    const desired = this.camTarget.clone();
-    if (this.player) {
-      // Focus rides the terrain under the hero so hills stay framed the same as flat ground
-      const p = this.player.group.position;
-      desired.set(p.x, groundHeight(p.x, p.z), p.z);
-      desired.add(this.lock.cameraOffset(LOCK_OFFSET));
-      if (this.state === 'menu' || this.state === 'select') desired.set(WORLD.spawn.x, 0, WORLD.spawn.z - 4);
-    }
-    this.camTarget.lerp(desired, 1 - Math.exp(-5 * dt));
 
-    const camera = this.camera;
+    if(!this.player) return;
+    // smoothly interpolate camTarget to match player position
+
+    const p = this.player.group.position;
+    const desiredTarget = new THREE.vector3(p.x,p.y + 1.8, p.z);
+    this.camTarget.lerp(desiredTarget,1 - Math.exp(-10*dt));
+
+    const x = this.camTarget.x + this.cameraDistance * Math.sin(this.camera.pitch) * Math.sin(this.cameraYaw);
+    const x = this.camTarget.y + this.cameraDistance * Math.cos(this.camera.pitch);
+    const x = this.camTarget.z + this.cameraDistance * Math.sin(this.camera.pitch) * Math.cos(this.cameraYaw);
+
+    this.camera.position.set(x,y,z);
+
+    //point camera at target point
+
+    this.camera.lookAt(this.camTarget);
+
+    // 4. Update horizontal direction vectors for WASD movement
+    // We flatten Y to 0 so walking up/down slopes doesn't slow down forward speed
+
+    this.camFWD.set(
+      -Math.sin(this.cameraYaw),0,-Math.cos(this.cameraYaw)
+
+    ).normalize();
+
+    this.camRight.crossVectors(this.camFwd, UP).normalize();
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+  //  const desired = this.camTarget.clone();
+    //if (this.player) {
+      // Focus rides the terrain under the hero so hills stay framed the same as flat ground
+    //  const p = this.player.group.position;
+    //  desired.set(p.x, groundHeight(p.x, p.z), p.z);
+    //  desired.add(this.lock.cameraOffset(LOCK_OFFSET));
+     // if (this.state === 'menu' || this.state === 'select') desired.set(WORLD.spawn.x, 0, WORLD.spawn.z - 4);
+   // }
+  //  this.camTarget.lerp(desired, 1 - Math.exp(-5 * dt));
+
+    //const camera = this.camera;
 
    // camera.position.copy(this.camTarget).addScaledVector(CAM_DIR, 52);
 
     // Third-person offset: 5 units UP, 10 units BEHIND the player's facing direction
-    const offset = new THREE.Vector3(0, 5, -10);
-    if (this.player && this.player.group) {
-    offset.applyQuaternion(this.player.group.quaternion);
-}
-camera.position.copy(this.camTarget).add(offset);
-    if (this.shake > 0.002) {
-      const amount = this.shake;
-      camera.position.x += (Math.random() - 0.5) * amount * 2.4;
-      camera.position.y += (Math.random() - 0.5) * amount * 2.4;
-      camera.position.z += (Math.random() - 0.5) * amount * 2.4;
-      this.shake *= Math.exp(-7 * dt);
-    }
-    camera.lookAt(this.camTarget);
+    //const offset = new THREE.Vector3(0, 5, -10);
+  //  if (this.player && this.player.group) {
+  //  offset.applyQuaternion(this.player.group.quaternion);
+//}
+//camera.position.copy(this.camTarget).add(offset);
+  //  if (this.shake > 0.002) {
+  //    const amount = this.shake;
+   //   camera.position.x += (Math.random() - 0.5) * amount * 2.4;
+   //   camera.position.y += (Math.random() - 0.5) * amount * 2.4;
+   //   camera.position.z += (Math.random() - 0.5) * amount * 2.4;
+   //   this.shake *= Math.exp(-7 * dt);
+   // }
+   // camera.lookAt(this.camTarget);
 
-    this.camFwd.copy(this.camTarget).sub(camera.position).setY(0).normalize();
-    this.camRight.crossVectors(this.camFwd, UP).normalize();
-    this.keyLight.position.set(this.camTarget.x + 14, this.camTarget.y + 22, this.camTarget.z + 10);
-    this.keyLight.target.position.copy(this.camTarget);
-  }
+   //this.camFwd.copy(this.camTarget).sub(camera.position).setY(0).normalize();
+   // this.camRight.crossVectors(this.camFwd, UP).normalize();
+   // this.keyLight.position.set(this.camTarget.x + 14, this.camTarget.y + 22, this.camTarget.z + 10);
+    //this.keyLight.target.position.copy(this.camTarget);
+  //}
 
   pushHud(force = false) {
     if (!this.player || !this.stats) return;
