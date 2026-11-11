@@ -143,7 +143,7 @@ export default class GameEngine {
       if (document.pointerLockElement !== canvas) return;
       const sensitivity = 0.002;
       this.cameraYaw -= event.movementX * sensitivity;
-      this.cameraPitch += event.movementY * sensitivity;
+      this.cameraPitch -= event.movementY * sensitivity;
       //clamp pitch so the camera doesnt flip over head or go underground
       this.cameraPitch = Math.max(this.minPitch, Math.min(this.maxPitch, this.cameraPitch));
     };
