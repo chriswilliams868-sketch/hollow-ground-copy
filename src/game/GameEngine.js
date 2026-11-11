@@ -122,7 +122,7 @@ export default class GameEngine {
     canvas.style.touchAction = 'none';
     this.host.appendChild(canvas);
 
-    this.camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 220);
+    //this.camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 220);
     this.hemi = new THREE.HemisphereLight('#8f7bff', '#0a0814', 0.9);
     this.scene.add(this.hemi);
 
