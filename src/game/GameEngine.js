@@ -122,7 +122,9 @@ export default class GameEngine {
     canvas.style.touchAction = 'none';
     this.host.appendChild(canvas);
 
-    //this.camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 220);
+    // Field of View: 60°, Aspect Ratio: screen width/height, Near: 0.1, Far: 1000
+    const aspect = window.innerWidth / window.innerHeight;
+    this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
     this.hemi = new THREE.HemisphereLight('#8f7bff', '#0a0814', 0.9);
     this.scene.add(this.hemi);
 
